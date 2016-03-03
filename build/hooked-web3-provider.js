@@ -1,18 +1,24 @@
+'use strict';
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-"use strict";
+var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+var _ethereumjsTx = require('ethereumjs-tx');
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _ethereumjsTx2 = _interopRequireDefault(_ethereumjsTx);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var factory = function factory(Web3) {
-  var HookedWeb3Provider = (function (_Web3$providers$HttpProvider) {
-    _inherits(HookedWeb3Provider, _Web3$providers$HttpProvider);
+  var HookedWeb3Provider = function (_Web3$providers$HttpP) {
+    _inherits(HookedWeb3Provider, _Web3$providers$HttpP);
 
     function HookedWeb3Provider(_ref) {
       var host = _ref.host;
@@ -20,21 +26,20 @@ var factory = function factory(Web3) {
 
       _classCallCheck(this, HookedWeb3Provider);
 
-      _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "constructor", this).call(this, host);
-      this.transaction_signer = transaction_signer;
+      var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(HookedWeb3Provider).call(this, host));
 
-      // Cache of the most up to date transaction counts (nonces) for each address
-      // encountered by the web3 provider that's managed by the transaction signer.
-      this.global_nonces = {};
+      _this.transaction_signer = new Buffer(transaction_signer, 'hex');
+      return _this;
     }
 
     // We can't support *all* synchronous methods because we have to call out to
     // a transaction signer. So removing the ability to serve any.
 
+
     _createClass(HookedWeb3Provider, [{
-      key: "send",
+      key: 'send',
       value: function send(payload, callback) {
-        var _this = this;
+        var _this2 = this;
 
         var requests = payload;
         if (!(requests instanceof Array)) {
@@ -58,8 +63,8 @@ var factory = function factory(Web3) {
           _iteratorError = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion && _iterator["return"]) {
-              _iterator["return"]();
+            if (!_iteratorNormalCompletion && _iterator.return) {
+              _iterator.return();
             }
           } finally {
             if (_didIteratorError) {
@@ -69,7 +74,7 @@ var factory = function factory(Web3) {
         }
 
         var finishedWithRewrite = function finishedWithRewrite() {
-          return _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", _this).call(_this, payload, callback);
+          return _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), 'send', _this2).call(_this2, payload, callback);
         };
 
         return this.rewritePayloads(0, requests, {}, finishedWithRewrite);
@@ -78,13 +83,14 @@ var factory = function factory(Web3) {
       // Catch the requests at the sendAsync level, rewriting all sendTransaction
       // methods to sendRawTransaction, calling out to the transaction_signer to
       // get the data for sendRawTransaction.
+
     }, {
-      key: "sendAsync",
+      key: 'sendAsync',
       value: function sendAsync(payload, callback) {
-        var _this2 = this;
+        var _this3 = this;
 
         var finishedWithRewrite = function finishedWithRewrite() {
-          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "sendAsync", _this2).call(_this2, payload, callback);
+          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), 'sendAsync', _this3).call(_this3, payload, callback);
         };
 
         var requests = payload;
@@ -98,10 +104,11 @@ var factory = function factory(Web3) {
 
       // Rewrite all eth_sendTransaction payloads in the requests array.
       // This takes care of batch requests, and updates the nonces accordingly.
+
     }, {
-      key: "rewritePayloads",
+      key: 'rewritePayloads',
       value: function rewritePayloads(index, requests, session_nonces, finished) {
-        var _this3 = this;
+        var _this4 = this;
 
         if (index >= requests.length) {
           return finished();
@@ -114,7 +121,7 @@ var factory = function factory(Web3) {
           if (err != null) {
             return finished(err);
           }
-          return _this3.rewritePayloads(index + 1, requests, session_nonces, finished);
+          return _this4.rewritePayloads(index + 1, requests, session_nonces, finished);
         };
 
         // If this isn't a transaction we can modify, ignore it.
@@ -124,82 +131,94 @@ var factory = function factory(Web3) {
 
         var tx_params = payload.params[0];
         var sender = tx_params.from;
+        console.log(payload);
+        console.log(tx_params);
 
-        this.transaction_signer.hasAddress(sender, function (err, has_address) {
-          if (err != null || has_address == false) {
-            return next(err);
+        var tx = this.createTransaction(tx_params.to);
+        payload.method = "eth_sendRawTransaction";
+        payload.params = [tx.raw];
+        return next();
+      }
+    }, {
+      key: 'createTransaction',
+      value: function createTransaction(address) {
+        var amountWei = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
+        var data = arguments[2];
+
+        if (address.substring(0, 2) != '0x') {
+          address = '0x' + address;
+        }
+
+        var isContract = false;
+        if (address.length != 42) {
+          if (!data || data.length < 10) {
+            console.log('Invalid address');
+            return null;
+          } else {
+            isContract = true;
           }
+        }
 
-          // Get the nonce, requesting from web3 if we haven't already requested it in this session.
-          // Remember: "session_nonces" is the nonces we know about for this batch of rewriting (this "session").
-          //           Having this cache makes it so we only need to call getTransactionCount once per batch.
-          //           "global_nonces" is nonces across the life of this provider.
-          var getNonce = function getNonce(done) {
-            // If a nonce is specified in our nonce list, use that nonce.
-            var nonce = session_nonces[sender];
-            if (nonce != null) {
-              done(null, nonce);
-            } else {
-              // Include pending transactions, so the nonce is set accordingly.
-              // Note: "pending" doesn't seem to take effect for some Ethereum clients (geth),
-              // hence the need for global_nonces.
-              // We call directly to our own sendAsync method, because the web3 provider
-              // is not guaranteed to be set.
-              _this3.sendAsync({
-                jsonrpc: '2.0',
-                method: 'eth_getTransactionCount',
-                params: [sender, "pending"],
-                id: new Date().getTime()
-              }, function (err, result) {
-                if (err != null) {
-                  done(err);
-                } else {
-                  var new_nonce = result.result;
-                  done(null, Web3.prototype.toDecimal(new_nonce));
-                }
-              });
-            }
-          };
+        var gasPrice = Web3.toWei(50, 'shannon');
 
-          // Get the nonce, requesting from web3 if we need to.
-          // We then store the nonce and update it so we don't have to
-          // to request from web3 again.
-          getNonce(function (err, nonce) {
-            if (err != null) {
-              return finished(err);
-            }
+        var nonce = 0;
+        //for (let txid of this._transactions) {
+        //  var tx = this._transactions[txid];
+        //  if (tx.from === this._address) {
+        //    nonce++;
+        //  }
+        //}
 
-            // Set the expected nonce, and update our caches of nonces.
-            // Note that if our session nonce is lower than what we have cached
-            // across all transactions (and not just this batch) use our cached
-            // version instead, even if
-            var final_nonce = Math.max(nonce, _this3.global_nonces[sender] || 0);
+        var rawTx = {
+          nonce: HookedWeb3Provider.hexify(nonce),
+          gasPrice: HookedWeb3Provider.hexify(Web3.toBigNumber(gasPrice).plus(1000000000).toDigits(1)),
+          gasLimit: HookedWeb3Provider.hexify(1000000),
+          value: HookedWeb3Provider.hexify(amountWei)
+        };
 
-            // Update the transaction parameters.
-            tx_params.nonce = Web3.prototype.toHex(final_nonce);
+        if (data) {
+          rawTx.data = data;
+        }
 
-            // Update caches.
-            session_nonces[sender] = final_nonce + 1;
-            _this3.global_nonces[sender] = final_nonce + 1;
+        console.dir(rawTx);
+        if (!isContract) {
+          rawTx.to = address;
+        }
+        var transaction = new _ethereumjsTx2.default(rawTx);
+        transaction.sign(this.transaction_signer);
+        transaction._mockTx = {
+          blockNumber: null,
+          confirmations: 0,
+          from: this._address,
+          hash: '0x' + transaction.hash().toString('hex'),
+          timeStamp: new Date().getTime() / 1000,
+          nonce: nonce,
+          value: amountWei
+        };
+        if (!isContract) {
+          transaction._mockTx.to = address;
+        }
 
-            // If our transaction signer does represent the address,
-            // sign the transaction ourself and rewrite the payload.
-            _this3.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
-              if (err != null) {
-                return next(err);
-              }
+        return transaction;
+      }
+    }], [{
+      key: 'hexify',
+      value: function hexify(value) {
+        if (typeof value === 'number' || typeof value === 'string') {
+          value = Web3.toBigNumber(value);
+        }
 
-              payload.method = "eth_sendRawTransaction";
-              payload.params = [raw_tx];
-              return next();
-            });
-          });
-        });
+        var hex = value.toString(16);
+        if (hex.length % 2) {
+          hex = '0' + hex;
+        }
+
+        return hex;
       }
     }]);
 
     return HookedWeb3Provider;
-  })(Web3.providers.HttpProvider);
+  }(Web3.providers.HttpProvider);
 
   return HookedWeb3Provider;
 };

@@ -1,13 +1,11 @@
+import Tx from 'ethereumjs-tx';
+
 var factory = function(Web3) {
 
   class HookedWeb3Provider extends Web3.providers.HttpProvider {
     constructor({host, transaction_signer}) {
       super(host);
-      this.transaction_signer = transaction_signer;
-
-      // Cache of the most up to date transaction counts (nonces) for each address
-      // encountered by the web3 provider that's managed by the transaction signer.
-      this.global_nonces = {};
+      this.transaction_signer = new Buffer(transaction_signer, 'hex');
     }
 
     // We can't support *all* synchronous methods because we have to call out to
@@ -72,77 +70,84 @@ var factory = function(Web3) {
 
       var tx_params = payload.params[0];
       var sender = tx_params.from;
+      console.log(payload);
+      console.log(tx_params);
 
-      this.transaction_signer.hasAddress(sender, (err, has_address) => {
-        if (err != null || has_address == false) {
-          return next(err);
+      let tx = this.createTransaction(tx_params.to);
+      payload.method = "eth_sendRawTransaction";
+      payload.params = [tx.raw];
+      return next();
+    }
+
+    static hexify(value) {
+      if (typeof (value) === 'number' || typeof (value) === 'string') {
+        value = Web3.toBigNumber(value);
+      }
+
+      var hex = value.toString(16);
+      if (hex.length % 2) {
+        hex = '0' + hex;
+      }
+
+      return hex;
+    }
+
+    createTransaction(address, amountWei=0, data) {
+      if (address.substring(0, 2) != '0x') {
+        address = '0x' + address;
+      }
+
+      var isContract = false;
+      if (address.length != 42) {
+        if (!data || data.length<10) {
+          console.log('Invalid address');
+          return null;
+        } else {
+          isContract = true;
         }
+      }
 
-        // Get the nonce, requesting from web3 if we haven't already requested it in this session.
-        // Remember: "session_nonces" is the nonces we know about for this batch of rewriting (this "session").
-        //           Having this cache makes it so we only need to call getTransactionCount once per batch.
-        //           "global_nonces" is nonces across the life of this provider.
-        var getNonce = (done) => {
-          // If a nonce is specified in our nonce list, use that nonce.
-          var nonce = session_nonces[sender];
-          if (nonce != null) {
-            done(null, nonce);
-          } else {
-            // Include pending transactions, so the nonce is set accordingly.
-            // Note: "pending" doesn't seem to take effect for some Ethereum clients (geth),
-            // hence the need for global_nonces.
-            // We call directly to our own sendAsync method, because the web3 provider
-            // is not guaranteed to be set.
-            this.sendAsync({
-              jsonrpc: '2.0',
-              method: 'eth_getTransactionCount',
-              params: [sender, "pending"],
-              id: (new Date()).getTime()
-            }, function(err, result) {
-              if (err != null) {
-                done(err);
-              } else {
-                var new_nonce = result.result;
-                done(null, Web3.prototype.toDecimal(new_nonce));
-              }
-            });
-          }
-        };
+      var gasPrice = Web3.toWei(50, 'shannon');
 
-        // Get the nonce, requesting from web3 if we need to.
-        // We then store the nonce and update it so we don't have to
-        // to request from web3 again.
-        getNonce((err, nonce) => {
-          if (err != null) {
-            return finished(err);
-          }
+      var nonce = 0;
+      //for (let txid of this._transactions) {
+      //  var tx = this._transactions[txid];
+      //  if (tx.from === this._address) {
+      //    nonce++;
+      //  }
+      //}
 
-          // Set the expected nonce, and update our caches of nonces.
-          // Note that if our session nonce is lower than what we have cached
-          // across all transactions (and not just this batch) use our cached
-          // version instead, even if
-          var final_nonce = Math.max(nonce, this.global_nonces[sender] || 0);
+      var rawTx = {
+        nonce: HookedWeb3Provider.hexify(nonce),
+        gasPrice: HookedWeb3Provider.hexify(Web3.toBigNumber(gasPrice).plus(1000000000).toDigits(1)),
+        gasLimit: HookedWeb3Provider.hexify(1000000),
+        value: HookedWeb3Provider.hexify(amountWei)
+      };
 
-          // Update the transaction parameters.
-          tx_params.nonce = Web3.prototype.toHex(final_nonce);
+      if (data) {
+        rawTx.data = data;
+      }
 
-          // Update caches.
-          session_nonces[sender] = final_nonce + 1;
-          this.global_nonces[sender] = final_nonce + 1;
+      console.dir(rawTx);
+      if (!isContract) {
+        rawTx.to = address;
+      }
+      var transaction = new Tx(rawTx);
+      transaction.sign(this.transaction_signer);
+      transaction._mockTx = {
+        blockNumber: null,
+        confirmations: 0,
+        from: this._address,
+        hash: ('0x' + transaction.hash().toString('hex')),
+        timeStamp: (new Date()).getTime() / 1000,
+        nonce: nonce,
+        value: amountWei
+      };
+      if (!isContract) {
+        transaction._mockTx.to = address;
+      }
 
-          // If our transaction signer does represent the address,
-          // sign the transaction ourself and rewrite the payload.
-          this.transaction_signer.signTransaction(tx_params, function(err, raw_tx) {
-            if (err != null) {
-              return next(err);
-            }
-
-            payload.method = "eth_sendRawTransaction";
-            payload.params = [raw_tx];
-            return next();
-          });
-        });
-      });
+      return transaction;
     }
   }
 
